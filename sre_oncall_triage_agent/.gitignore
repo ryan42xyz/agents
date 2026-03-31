@@ -1,0 +1,36 @@
+# Environment config (contains internal URLs)
+.env
+
+# Audit logs (contain operational data)
+tools/agent_ops/logs/
+
+# Output files (investigation results)
+tmp/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Evidence cache
+tmp/oncall_evidence/
+
+# Knowledge index (contains references to internal file names and client-specific entries)
+knowledge/README.md
+
+# Files containing internal URLs, customer names, or infrastructure details.
+# Listed in a separate manifest to avoid leaking names in .gitignore itself.
+# See .gitignore-sensitive (gitignored) for the actual file list.
+#
+# Pattern-based exclusions for files with client-specific or infra-specific content:
+knowledge/cases/*-ttl-merge-cpu-saturation.md
+knowledge/cases/*-tenant-qps-spike*.md
+knowledge/cases/*-qps-spike-joint-mitigation.md
+knowledge/checklists/*-preprod-checklist.md
+knowledge/debug-trees/debug-tree-spark-job-pending.md
+knowledge/runbooks/runbook-client-*.md
+knowledge/runbooks/runbook-dns-url-creation-*.md
+knowledge/runbooks/runbook-jenkins-selenium-*.md
+knowledge/runbooks/runbook-k8s-upgrade-plan-*.md
+
+# Screenshots (binary, potentially sensitive)
+knowledge/pic/

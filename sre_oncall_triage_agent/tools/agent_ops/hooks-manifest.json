@@ -1,0 +1,13 @@
+{
+  "_comment": "Source of truth for hook registrations. setup.sh reads this to ensure ~/.claude/settings.json has all entries.",
+  "PreToolUse": [
+    {"matcher": "Bash", "hooks": [{"type": "command", "command": "bash ~/.claude/hooks/k8s-gate.sh"}]},
+    {"matcher": "Bash", "hooks": [{"type": "command", "command": "bash ~/.claude/hooks/audit-pre.sh"}]}
+  ],
+  "PostToolUse": [
+    {"matcher": "Bash", "hooks": [{"type": "command", "command": "bash ~/.claude/hooks/audit-log.sh"}]},
+    {"matcher": "mcp__victoriametrics__*", "hooks": [{"type": "command", "command": "bash ~/.claude/hooks/mcp-audit.sh"}]},
+    {"matcher": "mcp__grafana__*", "hooks": [{"type": "command", "command": "bash ~/.claude/hooks/mcp-audit.sh"}]},
+    {"matcher": "mcp__slack__*", "hooks": [{"type": "command", "command": "bash ~/.claude/hooks/mcp-audit.sh"}]}
+  ]
+}

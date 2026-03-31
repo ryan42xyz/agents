@@ -1,0 +1,5 @@
+# All reference files contain internal URLs, customer names, and infrastructure details.
+# Only README.md and .gitkeep are tracked.
+*
+!README.md
+!.gitignore
