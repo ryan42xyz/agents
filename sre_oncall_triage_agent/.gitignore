@@ -22,7 +22,6 @@ knowledge/README.md
 # See .gitignore-sensitive (gitignored) for the actual file list.
 #
 # Pattern-based exclusions for files with client-specific or infra-specific content:
-knowledge/cases/*-ttl-merge-cpu-saturation.md
 knowledge/cases/*-tenant-qps-spike*.md
 knowledge/cases/*-qps-spike-joint-mitigation.md
 knowledge/checklists/*-preprod-checklist.md
