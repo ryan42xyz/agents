@@ -186,7 +186,6 @@ def _run_mock(case: EvalCase) -> ScoreResult:
         agent = TriageAgent.__new__(TriageAgent)
         agent._config = config
 
-        import anthropic
         from ..context.knowledge import KnowledgeLoader
         from ..context.manager import ContextManager
         from ..observability.trace import Tracer

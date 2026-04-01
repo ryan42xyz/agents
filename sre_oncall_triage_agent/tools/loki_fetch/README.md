@@ -2,84 +2,130 @@
 
 Directly queries Loki HTTP API — no Grafana MCP dependency.
 
+**Loki**: `https://loki.dv-api.com` · `auth_enabled: true` · two tenants: `prod` and `nonprod`
+
+---
+
+## Quick start
+
+```bash
+# kwestdeva — dapp errors in last hour
+LOKI_URL="https://loki.dv-api.com" LOKI_ORG_ID="nonprod" \
+  python3 tools/loki_fetch/loki_fetch.py \
+  --expr '{cluster="aws-uswest2-dev-a", app=~"dapp-.*"}' |= "ERROR"' \
+  --from now-1h
+
+# kwestproda — prod service errors
+LOKI_URL="https://loki.dv-api.com" LOKI_ORG_ID="prod" \
+  python3 tools/loki_fetch/loki_fetch.py \
+  --expr '{cluster="aws-uswest2-prod-a", namespace="prod"} |= "ERROR"' \
+  --from now-30m --limit 500
+```
+
+---
+
+## Tenant → cluster mapping
+
+### `LOKI_ORG_ID=nonprod`
+
+| cluster label | kubectl alias |
+|---|---|
+| `aws-uswest2-dev-a` | `kwestdeva` |
+| `aws-uswest2-dev-b` | `kwestdevb` |
+| `aws-uswest2-preprod-a` | `kwestpreprod` |
+| `aws-useast1-preprod-a` | — |
+| `aws-useast1-pcipreprod-a` | — |
+| `aws-afsouth1-preprod-a` | — |
+| `aws-cacentral1-preprod-a` | — |
+| `gcp-uswest1-prod-a` | — |
+
+### `LOKI_ORG_ID=prod`
+
+| cluster label | kubectl alias |
+|---|---|
+| `aws-uswest2-mgt-a` | `kwestmgt` |
+| `aws-uswest2-prod-a` | `kwestproda` |
+| `aws-uswest2-prod-b` | `kwestprodb` |
+| `aws-uswest2-sandbox-a` | — |
+| `aws-uswest2-sandbox-b` | — |
+| `aws-useast1-prod-a` | — |
+| `aws-useast1-prod-b` | — |
+| `aws-useast1-pci-a` | — |
+| `aws-useast1-pci-b` | — |
+| `aws-cacentral1-prod-a/b` | — |
+| `aws-euwest1-prod-a/b` | — |
+| `aws-afsouth1-prod-a/b` | — |
+| `aws-apsoutheast1-prod-a/b` | — |
+| `aws-cawest1-prod-b` | — |
+| `aws-euwest2-prod-b` | — |
+
+**Rule of thumb**: dev/preprod/demo → `nonprod`; prod/mgt/sandbox → `prod`
+
+---
+
 ## Usage
 
-### Mode 1: Grafana Explore URL
+### Mode 1: Direct LogQL
 ```bash
-python3 ./tools/loki_fetch/loki_fetch.py '<grafana_explore_url>'
-```
+python3 tools/loki_fetch/loki_fetch.py --expr '<LogQL>' [options]
 
-### Mode 2: Direct LogQL
-```bash
-python3 ./tools/loki_fetch/loki_fetch.py --expr '{cluster="aws-uswest2-dev", app="dapp"}' --from now-1h
-
-# With explicit time range
-python3 ./tools/loki_fetch/loki_fetch.py \
-  --expr '{cluster="aws-uswest2-dev", namespace="default"} |= "ERROR"' \
+# ISO8601 time range
+python3 tools/loki_fetch/loki_fetch.py \
+  --expr '{cluster="aws-uswest2-dev-a", app="dapp-server"} |= "ERROR"' \
   --from 2026-03-31T08:00:00Z --to 2026-03-31T09:00:00Z \
-  --limit 500
+  --limit 500 --direction forward
 
-# Dry-run: see resolved params without fetching
-python3 ./tools/loki_fetch/loki_fetch.py --expr '{app="dapp"}' --dry-run
+# Check what apps exist in a cluster
+python3 tools/loki_fetch/loki_fetch.py \
+  --expr '{cluster="aws-uswest2-dev-a"}' --dry-run
 ```
+
+### Mode 2: Parse Grafana Explore URL
+```bash
+python3 tools/loki_fetch/loki_fetch.py '<grafana_explore_url>'
+```
+Parses the `panes=` param and fetches directly without Grafana MCP.
+
+---
 
 ## Options
 
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--expr` | — | LogQL expression |
-| `--from` | `now-1h` | Start time (`now-Xh/m/s` or ISO8601) |
+| `--from` | `now-1h` | Start time: `now-Xh/m/s` or ISO8601 |
 | `--to` | `now` | End time |
-| `--limit` | 200 | Max lines |
-| `--direction` | `backward` | `backward` = newest first, `forward` = oldest first |
-| `--loki-url` | `$LOKI_URL` or `https://loki.example.com` | Loki endpoint |
-| `--org-id` | `$LOKI_ORG_ID` or `fake` | `X-Scope-OrgID` header |
-| `--json` | off | Output NDJSON (timestamp + labels + line) |
-| `--dry-run` | off | Print resolved query params, no fetch |
+| `--limit` | 200 | Max log lines |
+| `--direction` | `backward` | `backward` = newest first |
+| `--loki-url` | `$LOKI_URL` | Loki base URL (required) |
+| `--org-id` | `$LOKI_ORG_ID` or `fake` | `X-Scope-OrgID` tenant header |
+| `--json` | off | Output NDJSON `{timestamp, labels, line}` |
+| `--dry-run` | off | Print resolved params without fetching |
 
-## Environment
+---
 
-```bash
-export LOKI_URL="https://loki.example.com"
-export LOKI_ORG_ID="fake"   # override per-cluster if multi-tenant
+## Labels set by promtail
+
 ```
-
-## Label reference (kwestdeva)
-
-Promtail config for dev us-west-2 sets:
-```
-cluster: aws-uswest2-dev
+cluster:   <see table above>
 namespace: <k8s namespace>
-pod: <pod name>
+pod:       <pod name>
 container: <container name>
-app: <pod label app>
+app:       <pod label "app">
 ```
 
-Typical oncall queries:
-```logql
-# dapp deploy logs (last 1h)
-{cluster="aws-uswest2-dev", app="dapp"}
+Known dapp apps in kwestdeva: `dapp-server`, `dapp-ui`, `dapp-mysql`
 
-# errors only
-{cluster="aws-uswest2-dev", namespace="default"} |= "ERROR" | logfmt
+---
 
-# specific pod
-{cluster="aws-uswest2-dev", pod=~"dapp-.*"}
-```
-
-## Workflow
+## Workflow in oncall agent
 
 ```
-loki_fetch.py --expr <LogQL>         # Mode 1: direct query
+loki_fetch.py --expr <LogQL>
   OR
-loki_fetch.py <grafana_explore_url>  # Mode 2: parse URL → query
-
-  → stdout: formatted log lines
+loki_fetch.py <grafana_explore_url>
+  → stdout: "TIMESTAMP | log line"
   → agent saves to tmp/oncall_evidence/<label>/logs.log via Write tool
 ```
 
-## Notes
-
-- **No Grafana MCP required** — calls Loki `/loki/api/v1/query_range` directly
-- Read-only; all queries are logged by `mcp-audit.sh` (Bash tool hook)
-- If `X-Scope-OrgID` is wrong for your cluster, set `LOKI_ORG_ID` or `--org-id`
+Query safety rules (from CLAUDE.md): every LogQL must include ≥1 stream selector; time window ≤ 6h; no `=~".*"` on high-cardinality labels (pod/container).

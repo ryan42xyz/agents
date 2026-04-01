@@ -1,22 +1,29 @@
 #!/usr/bin/env python3
 """
-Loki log fetcher - directly queries Loki HTTP API.
+Loki log fetcher — directly queries Loki HTTP API (no Grafana MCP).
+
+Loki:    https://loki.dv-api.com   (auth_enabled=true, two tenants)
+Tenants: nonprod  → dev/preprod clusters (kwestdeva/b, kwestpreprod, ...)
+         prod     → prod/mgt/sandbox clusters (kwestproda/b, kwestmgt, ...)
 
 Usage:
-  Mode 1: Parse Grafana Explore URL and fetch logs
-    python3 loki_fetch.py <grafana_explore_url> [options]
+  # kwestdeva dapp errors
+  LOKI_URL=https://loki.dv-api.com LOKI_ORG_ID=nonprod \\
+    python3 loki_fetch.py --expr '{cluster="aws-uswest2-dev-a", app="dapp-server"} |= "ERROR"'
 
-  Mode 2: Direct LogQL query
-    python3 loki_fetch.py --expr '{app="myapp"}' [options]
-    python3 loki_fetch.py --expr '{app="myapp"}' --from now-2h --to now-30m
+  # kwestproda prod errors
+  LOKI_URL=https://loki.dv-api.com LOKI_ORG_ID=prod \\
+    python3 loki_fetch.py --expr '{cluster="aws-uswest2-prod-a", namespace="prod"} |= "ERROR"'
 
-Output:
-  Formatted log lines to stdout:
-    2026-03-31 10:00:01 | ERROR something failed
+  # From Grafana Explore URL
+  LOKI_URL=https://loki.dv-api.com LOKI_ORG_ID=nonprod \\
+    python3 loki_fetch.py '<grafana_explore_url>'
+
+Output: "YYYY-MM-DD HH:MM:SS | log line" per line
 
 Environment:
-  LOKI_URL      Loki base URL (required — no hardcoded default)
-  LOKI_ORG_ID   X-Scope-OrgID header (default: fake)
+  LOKI_URL      required — Loki base URL
+  LOKI_ORG_ID   X-Scope-OrgID tenant (default: fake)
 """
 
 import argparse
