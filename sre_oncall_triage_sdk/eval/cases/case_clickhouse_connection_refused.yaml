@@ -1,0 +1,77 @@
+# Eval test case: ClickHouse connection refused
+# Source: sre_oncall_triage_agent/knowledge/cases/case-clickhouse-connection-refused-troubleshooting.md
+# This is a real incident pattern — endpoints empty, pods not scheduling.
+
+id: "case-clickhouse-connection-refused-01"
+description: "ClickHouse connection refused — endpoints empty, pods in CrashLoopBackOff"
+
+input:
+  alert_text: |
+    [FIRING] ServiceConnectionRefused
+    alertname: ServiceConnectionRefused
+    cluster: aws-uswest2-prod-a
+    namespace: clickhouse
+    service: clickhouse
+    port: 9000
+    error: dial tcp 10.0.1.42:9000: connect: connection refused
+    severity: critical
+    started: 2026-03-31T14:00:00Z
+
+expected:
+  routing_cluster: "Cluster 1"
+  debug_tree: "debug-tree-connection-refused-layered.md"
+  verdict_in:
+    - "NEEDS_ATTENTION"
+    - "ESCALATE"
+  must_query_tools:
+    - "vm_query_instant"
+    - "kubectl_read"
+  slack_must_contain:
+    - "connection refused"
+    - "investigating"
+  slack_must_not_contain:
+    - "root cause is"
+    - "definitely"
+    - "all users"
+  required_sections:
+    - "slack response"
+    - "internal notes"
+    - "investigation log"
+  evidence_chain_nonempty: true
+
+# Mocked tool responses for deterministic testing
+mock_tool_responses:
+  vm_query_instant:
+    - match_query: "kube_pod_info"
+      response:
+        status: "success"
+        data:
+          resultType: "vector"
+          result:
+            - metric:
+                namespace: "clickhouse"
+                pod: "clickhouse-0"
+                node: "ip-10-0-1-5"
+              value: [1711900800, "1"]
+    - match_query: "up"
+      response:
+        status: "success"
+        data:
+          resultType: "vector"
+          result:
+            - metric:
+                namespace: "clickhouse"
+                job: "clickhouse"
+              value: [1711900800, "0"]
+  kubectl_read:
+    - match_command: "get endpoints"
+      response: "NAME         ENDPOINTS   AGE\nclickhouse   <none>      2d"
+    - match_command: "get pods"
+      response: |
+        NAME             READY   STATUS             RESTARTS   AGE
+        clickhouse-0     0/1     CrashLoopBackOff   15         2h
+    - match_command: "describe pod"
+      response: |
+        Events:
+          Warning  BackOff    5m    kubelet  Back-off restarting failed container
+          Warning  OOMKilled  10m   kubelet  Container clickhouse OOMKilled

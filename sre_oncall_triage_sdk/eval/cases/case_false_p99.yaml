@@ -1,0 +1,69 @@
+# Eval test case: False P99 latency spike
+# Source: sre_oncall_triage_agent/knowledge/cases/case-monitoring-alert-delay-histogram-skew.md
+# Pattern: P99 high but error_rate normal → histogram skew, not real latency
+
+id: "case-false-p99-latency-01"
+description: "P99 latency spike with normal error rate — histogram skew false signal"
+
+input:
+  alert_text: |
+    [FIRING] HighP99Latency
+    alertname: HighP99Latency
+    cluster: aws-useast1-prod-b
+    namespace: fp
+    service: fp-api
+    p99_latency_ms: 4200
+    threshold_ms: 500
+    severity: warning
+    started: 2026-03-30T09:15:00Z
+
+expected:
+  routing_cluster: "Cluster 4"
+  debug_tree: "debug-tree-false-p99-histogram-skew.md"
+  verdict_in:
+    - "NON_ACTIONABLE_NOISE"
+    - "KNOWN_ISSUE"
+    - "IGNORE_DEV"
+  slack_must_contain:
+    - "latency"
+  slack_must_not_contain:
+    - "root cause is"
+    - "definitely"
+    - "all users"
+  required_sections:
+    - "slack response"
+    - "internal notes"
+    - "investigation log"
+  evidence_chain_nonempty: true
+
+mock_tool_responses:
+  vm_query_range:
+    - match_query: "histogram_quantile"
+      response:
+        status: "success"
+        data:
+          resultType: "matrix"
+          result:
+            - metric:
+                namespace: "fp"
+                service: "fp-api"
+              values:
+                - [1711795200, "4200"]
+                - [1711795260, "4150"]
+    - match_query: "error_rate"
+      response:
+        status: "success"
+        data:
+          resultType: "matrix"
+          result:
+            - metric:
+                namespace: "fp"
+              values:
+                - [1711795200, "0.001"]
+                - [1711795260, "0.001"]
+  kubectl_read:
+    - match_command: "get pods"
+      response: |
+        NAME          READY   STATUS    RESTARTS   AGE
+        fp-api-xyz    1/1     Running   0          3d
+        fp-api-abc    1/1     Running   0          3d

@@ -1,0 +1,22 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Environment — never commit credentials
+.env
+
+# Runtime outputs — generated per-run, not part of source
+output/
+eval/results/
+*.log
+
+# IDE
+.DS_Store
+.idea/
+.vscode/

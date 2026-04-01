@@ -1,0 +1,24 @@
+[project]
+name = "sre-triage-agent"
+version = "0.1.0"
+description = "Standalone SRE oncall triage agent using Anthropic SDK"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=0.40.0",
+    "click>=8.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.0"]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.24"]
+
+[project.scripts]
+sre-triage = "sre_triage.cli:main"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

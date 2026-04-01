@@ -1,0 +1,20 @@
+# Audit logs — may contain internal cluster names and IPs
+sre_oncall_triage_agent/tools/agent_ops/logs/
+
+# Credentials
+sre_oncall_triage_agent/.env
+sre_oncall_triage_sdk/.env
+
+# Python build artifacts
+**/.venv/
+**/__pycache__/
+**/*.pyc
+**/*.egg-info/
+
+# Runtime outputs (generated, not source)
+sre_oncall_triage_sdk/output/
+sre_oncall_triage_sdk/eval/results/
+
+# Logs and temp files
+*.log
+excalidraw.log
